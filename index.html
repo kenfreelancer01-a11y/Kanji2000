@@ -145,6 +145,7 @@ function drawQuiz(){if(S.i>=S.qs.length){endCard('Trắc nghiệm','startQuiz');
 function pickQ(k){if(S.ans)return;S.ans=true;const q=S.qs[S.i],ok=q.o[k].id===q.w.id;
  document.querySelectorAll('.opt').forEach((b,i)=>{if(q.o[i].id===q.w.id)b.classList.add('ok');else if(i===k)b.classList.add('no')});
  if(ok)S.ok++;else S.wrong.push(q.w);practiceResult(q.w.id,ok);
+ if(ok){setTimeout(()=>{S.i++;S.ans=false;drawQuiz()},350);return}
  $('#fb').innerHTML=`<div class="msg ${ok?'ok':'no'}">${ok?'Chính xác!':'Chưa đúng'}</div><div class="ex">${back(q.w)}</div><div class="sp"></div><button class="btn" onclick="S.i++;S.ans=false;drawQuiz()">Tiếp tục</button>`;speak(q.w)}
 /* trắc nghiệm âm đọc: On / Kun */
 function readOpts(w,t,ans){const own=new Set((t==='on'?w.on:w.kn));const key=x=>t==='on'?x.on:x.kn;
@@ -162,6 +163,7 @@ function drawRead(){if(S.i>=S.qs.length){endCard('Âm đọc On / Kun','startRea
 function pickR(k){if(S.ans)return;S.ans=true;const q=S.qs[S.i],ok=q.o[k]===q.ans;
  document.querySelectorAll('.opt').forEach((b,i)=>{if(q.o[i]===q.ans)b.classList.add('ok');else if(i===k)b.classList.add('no')});
  if(ok)S.ok++;else S.wrong.push(q.w);practiceResult(q.w.id,ok);
+ if(ok){setTimeout(()=>{S.i++;S.ans=false;drawRead()},350);return}
  $('#fb').innerHTML=`<div class="msg ${ok?'ok':'no'}" style="margin-top:12px">${ok?'Chính xác!':'Chưa đúng'} — tất cả âm đọc của chữ này:</div>${readings(q.w)}<div class="sp"></div><button class="btn" onclick="S.i++;S.ans=false;drawRead()">Tiếp tục</button>`;speak(q.w)}
 /* browse */
 let BF={q:'',g:'ALL',gp:-1};
