@@ -75,8 +75,8 @@ const rnd=a=>a[Math.floor(Math.random()*a.length)];
 const shuf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const noDia=s=>String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D').toLowerCase().trim();
 let DB;try{DB=JSON.parse(localStorage.getItem(KEY))}catch(e){}
-DB=Object.assign({c:{},s:{newPerDay:10,gr:{1:1,2:1,3:1,4:1,5:1,6:1,S:1},ord:'grade',grp:'',auto:1,en:1},daily:{d:0,n:0},streak:{last:0,n:0}},DB||{});
-DB.s=Object.assign({newPerDay:10,gr:{1:1,2:1,3:1,4:1,5:1,6:1,S:1},ord:'grade',grp:'',auto:1,en:1},DB.s);
+DB=Object.assign({c:{},s:{newPerDay:10,gr:{1:1,2:1,3:1,4:1,5:1,6:1,S:1},ord:'grade',grp:'',auto:1,en:1,unl:0},daily:{d:0,n:0},streak:{last:0,n:0}},DB||{});
+DB.s=Object.assign({newPerDay:10,gr:{1:1,2:1,3:1,4:1,5:1,6:1,S:1},ord:'grade',grp:'',auto:1,en:1,unl:0},DB.s);
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}};
 const CMP={grade:(a,b)=>GR.indexOf(a.g)-GR.indexOf(b.g)||a.st-b.st||a.id-b.id,stroke:(a,b)=>a.st-b.st||a.id-b.id,group:(a,b)=>a.gp.localeCompare(b.gp,'vi')||a.st-b.st||a.id-b.id,file:(a,b)=>a.id-b.id};
 const active=()=>W.filter(w=>DB.s.gr[w.g]&&(!DB.s.grp||w.gp===DB.s.grp)).sort(CMP[DB.s.ord]||CMP.grade);
@@ -94,7 +94,7 @@ function rate(id,r){const t=today();let c=DB.c[id];if(!c){c=DB.c[id]={b:0,d:t,n:
 function preview(id,r){const c=DB.c[id]||{b:0};let b=c.b;if(r==='again')return '<1 ngày';if(r==='hard')return Math.max(1,IV[Math.max(1,b)]>>1)+' ngày';b=Math.min(7,b+(r==='good'?1:2));return IV[b]+' ngày'}
 function practiceResult(id,ok){const c=DB.c[id];if(!c)return;const t=today();if(ok){if(c.d<=t){c.b=Math.min(7,c.b+1);c.d=t+IV[c.b]}}else{c.b=Math.max(0,c.b-1);c.d=t;c.w++}streak();save()}
 function stats(){const t=today(),a=active();let due=0,learned=0,mast=0;a.forEach(w=>{const c=DB.c[w.id];if(c){learned++;if(c.b>=4)mast++;if(c.d<=t)due++}});
- const left=Math.max(0,DB.s.newPerDay-(DB.daily.d===t?DB.daily.n:0));return{due,learned,mast,newAvail:Math.min(left,a.length-learned),total:a.length}}
+ const left=Math.max(0,DB.s.newPerDay-(DB.daily.d===t?DB.daily.n:0));return{due,learned,mast,newAvail:DB.s.unl?a.length-learned:Math.min(left,a.length-learned),total:a.length}}
 /* views */
 function readings(w){return (w.on.length?`<div class="rd kj"><small>ON</small>${esc(w.on.join('、'))}</div>`:'')+(w.kn.length?`<div class="rd kj"><small>KUN</small>${esc(w.kn.join('、'))}</div>`:'')}
 function back(w){return `<div class="hv">${esc(w.hv||'—')}</div>${w.vi?`<div class="vi">${esc(w.vi)}</div>`:''}${DB.s.en||!w.vi?`<div class="en">${esc(w.en)}</div>`:''}${readings(w)}
@@ -106,19 +106,20 @@ function home(){S=null;const s=stats();
  const lv=GR.map(g=>{const ws=W.filter(w=>w.g===g),lr=ws.filter(w=>DB.c[w.id]).length,m=ws.filter(w=>(DB.c[w.id]||{b:0}).b>=4).length;
   return `<div class="lvrow"><div class="t"><span><span class="badge b${g}">${GN(g)}</span> ${lr}/${ws.length} đã học · ${m} đã thuộc</span><span class="muted">${Math.round(100*lr/ws.length)}%</span></div><div class="bar"><i style="width:${100*lr/ws.length}%;background:var(--g${g});opacity:.35"></i><i style="width:${100*m/ws.length}%;background:var(--g${g})"></i></div></div>`}).join('');
  shell('<img src="icon-192.png" style="width:28px;height:28px" alt=""><span>Kanji 2000</span>',`${DB.s.grp?`<div class="banner"><span>Đang học nhóm nghĩa: <b>${esc(DB.s.grp)}</b></span><button onclick="DB.s.grp='';save();home()">Bỏ lọc</button></div>`:''}
- <div class="card"><div class="stat"><div><b>${s.due}</b><span>cần ôn hôm nay</span></div><div><b>${s.newAvail}</b><span>chữ mới hôm nay</span></div><div><b>🔥${DB.streak.n}</b><span>ngày liên tiếp</span></div></div></div>
- <div class="grid"><button class="big g1" onclick="startStudy()"><b>Học thẻ</b><span>${s.due+s.newAvail} thẻ đang chờ</span></button><button class="big g2" onclick="startQuiz()"><b>Trắc nghiệm</b><span>chữ · nghĩa · cách đọc</span></button><button class="big g3" onclick="startType()"><b>Gõ Hán Việt</b><span>nhìn chữ, gõ âm Hán Việt</span></button><button class="big g4" onclick="browse()"><b>Danh sách</b><span>${W.length} chữ · lọc theo nhóm nghĩa</span></button></div>
+ <div class="card"><div class="stat"><div><b>${s.due}</b><span>cần ôn hôm nay</span></div><div><b>${s.newAvail}</b><span>${DB.s.unl?'chữ chưa học':'chữ mới hôm nay'}</span></div><div><b>🔥${DB.streak.n}</b><span>ngày liên tiếp</span></div></div></div>
+ <div class="grid"><button class="big g1" onclick="startStudy()"><b>Học thẻ</b><span>${s.due+s.newAvail} thẻ đang chờ</span></button><button class="big g2" onclick="startQuiz()"><b>Trắc nghiệm</b><span>chọn nghĩa · chọn Hán Việt</span></button><button class="big g3" onclick="startRead()"><b>Âm đọc</b><span>chọn âm On · âm Kun</span></button><button class="big g4" onclick="browse()"><b>Danh sách</b><span>${W.length} chữ · lọc theo nhóm nghĩa</span></button></div><div class="sp"></div><button class="big" style="width:100%;background:linear-gradient(135deg,#0ea5e9,#0369a1)" onclick="startStudy(true)"><b>♾ Học không giới hạn</b><span>học liên tục, mỗi lượt ${BATCH} chữ mới, không bị chặn bởi giới hạn mỗi ngày</span></button>
  <div class="sp"></div><div class="card"><b>Tiến độ theo cấp độ</b>${lv}</div>`,false)}
 /* study */
-function startStudy(){const t=today(),a=active();
+const BATCH=20;
+function startStudy(unl){unl=unl===true||!!DB.s.unl;const t=today(),a=active();
  const rev=a.filter(w=>DB.c[w.id]&&DB.c[w.id].d<=t).sort((x,y)=>DB.c[x.id].d-DB.c[y.id].d).map(w=>w.id);
- const left=Math.max(0,DB.s.newPerDay-(DB.daily.d===t?DB.daily.n:0));
+ const left=unl?BATCH:Math.max(0,DB.s.newPerDay-(DB.daily.d===t?DB.daily.n:0));
  const q=[...rev,...a.filter(w=>!DB.c[w.id]).slice(0,left).map(w=>w.id)];
- if(!q.length){shell('Học thẻ',`<div class="card center"><div style="font-size:48px">🎉</div><h3>Hôm nay đã xong!</h3><p class="muted">Không còn thẻ cần ôn hoặc chữ mới trong giới hạn hôm nay. Bạn có thể tăng số chữ mới/ngày trong Cài đặt, hoặc luyện thêm bằng Trắc nghiệm / Gõ Hán Việt.</p><button class="btn" onclick="home()">Về trang chủ</button></div>`);return}
- S={m:'study',q,i:0,show:false,total:q.length};drawStudy()}
-function drawStudy(){if(S.i>=S.q.length){shell('Học thẻ',`<div class="card center"><div style="font-size:48px">✅</div><h3>Hoàn thành ${S.total} thẻ!</h3><button class="btn" onclick="home()">Về trang chủ</button></div>`);return}
+ if(!q.length){shell('Học thẻ',`<div class="card center"><div style="font-size:48px">🎉</div><h3>${unl?'Bạn đã học hết các chữ trong bộ lọc!':'Hôm nay đã xong!'}</h3><p class="muted">${unl?'Không còn thẻ cần ôn hoặc chữ mới. Bạn có thể bật thêm cấp độ / nhóm nghĩa trong Cài đặt, hoặc luyện bằng Trắc nghiệm.':'Không còn thẻ cần ôn hoặc chữ mới trong giới hạn hôm nay. Bạn có thể học thêm không giới hạn, hoặc luyện bằng Trắc nghiệm.'}</p>${unl?'':'<button class="btn" onclick="startStudy(true)">♾ Học thêm không giới hạn</button><div class="sp"></div>'}<button class="btn sec" onclick="home()">Về trang chủ</button></div>`);return}
+ S={m:'study',q,i:0,show:false,total:q.length,unl};drawStudy()}
+function drawStudy(){if(S.i>=S.q.length){const more=active().some(w=>!DB.c[w.id]);shell('Học thẻ',`<div class="card center"><div style="font-size:48px">✅</div><h3>Hoàn thành ${S.total} thẻ!</h3>${S.unl&&more?`<button class="btn" onclick="startStudy(true)">♾ Học tiếp ${BATCH} chữ nữa</button><div class="sp"></div>`:''}<button class="btn ${S.unl&&more?'sec':''}" onclick="home()">Về trang chủ</button></div>`);return}
  const w=W[S.q[S.i]],isNew=!DB.c[w.id];
- let h=`<div class="prog"><span>${S.i+1}/${S.q.length}${isNew?' · chữ mới':''}</span><span>còn ${S.q.length-S.i}</span></div><div class="bar" style="margin-bottom:12px"><i style="width:${100*S.i/S.q.length}%;background:var(--pr)"></i></div><div class="card"><div class="center"><span class="badge b${w.g}">${GN(w.g)}</span></div><div class="kbig kj">${esc(w.k)}</div><div class="meta">${w.st} nét · bộ ${esc(w.r)}</div><div class="sp"></div>`;
+ let h=`<div class="prog"><span>${S.i+1}/${S.q.length}${isNew?' · chữ mới':''}${S.unl?' · ♾':''}</span><span>còn ${S.q.length-S.i}</span></div><div class="bar" style="margin-bottom:12px"><i style="width:${100*S.i/S.q.length}%;background:var(--pr)"></i></div><div class="card"><div class="center"><span class="badge b${w.g}">${GN(w.g)}</span></div><div class="kbig kj">${esc(w.k)}</div><div class="meta">${w.st} nét · bộ ${esc(w.r)}</div><div class="sp"></div>`;
  if(!S.show)h+=`<button class="btn" onclick="S.show=true;drawStudy()">Hiện đáp án <small>(Space)</small></button></div>`;
  else h+=`<hr style="border:0;border-top:1px solid var(--bd)">${back(w)}<div class="sp"></div><button class="btn sec" onclick="speak(W[${w.id}])">🔊 Nghe cách đọc</button></div><div class="rate">${[['again','Quên','r1'],['hard','Khó','r2'],['good','Nhớ','r3'],['easy','Dễ','r4']].map(x=>`<button class="${x[2]}" onclick="answer('${x[0]}')">${x[1]}<small>${preview(w.id,x[0])}</small></button>`).join('')}</div>`;
  shell('Học thẻ',h);if(S.show&&DB.s.auto)speak(w)}
@@ -127,41 +128,41 @@ function answer(r){const id=S.q[S.i];rate(id,r);if(r==='again')S.q.splice(Math.m
 function pool(n,filter){const a=active().filter(filter||(()=>true)),seen=a.filter(w=>DB.c[w.id]);let p=shuf(seen).slice(0,n);if(p.length<n)p=p.concat(shuf(a.filter(w=>!DB.c[w.id])).slice(0,n-p.length));return p}
 function distract(w,k,fn){const tiers=[W.filter(x=>x.r===w.r),W.filter(x=>x.gp===w.gp),W.filter(x=>x.g===w.g),W];const seen=new Set([fn(w)]),out=[];
  for(const t of tiers){for(const x of shuf(t)){if(out.length>=k)return out;if(x.id===w.id)continue;const l=fn(x);if(!l||seen.has(l))continue;seen.add(l);out.push(x)}}return out}
-/* quiz */
-function startQuiz(){const p=pool(10);if(!p.length){home();return}
- const qs=p.map(w=>{const ts=['k2m','m2k','k2r'];if(w.hv)ts.push('k2hv');const t=rnd(ts);
-  const fn=t==='k2m'?lab:t==='m2k'?(x=>x.k):t==='k2r'?rdLab:(x=>(x.hv||'').toUpperCase());
-  return{w,t,o:shuf([w,...distract(w,3,fn)])}});
- S={m:'quiz',qs,i:0,ok:0,wrong:[],ans:false};drawQuiz()}
-function wrongList(){return S.wrong.map(w=>`<div class="row" onclick="detail(${w.id})"><div class="kc kj">${esc(w.k)}</div><div class="m"><b>${esc(w.hv||w.en)}</b><div>${esc(w.vi||w.en)}</div></div></div>`).join('')}
+/* quiz: nghĩa + Hán Việt */
+const meanLab=w=>w.vi?w.vi.split(/[,;]/).slice(0,2).map(x=>x.trim()).join(', '):w.en;
+const hvLab=w=>(w.hv||'').toUpperCase();
+function wrongList(){return S.wrong.map(w=>`<div class="row" onclick="detail(${w.id})"><div class="kc kj">${esc(w.k)}</div><div class="m"><b>${esc(w.hv?w.hv.toUpperCase():w.en)}</b><div>${esc(w.vi||w.en)}</div></div></div>`).join('')}
 function endCard(title,again){return shell(title,`<div class="card center"><div style="font-size:48px">${S.ok>=8?'🏆':'👍'}</div><h2>${S.ok}/${S.qs.length} câu đúng</h2>${S.wrong.length?`<div style="text-align:left"><b>Cần ôn lại:</b>${wrongList()}</div>`:''}<div class="sp"></div><button class="btn" onclick="${again}()">Làm lượt mới</button><div class="sp"></div><button class="btn sec" onclick="home()">Về trang chủ</button></div>`)}
+const quizLab=w=>w.hv&&w.vi?`${hvLab(w)} — ${meanLab(w)}`:w.hv?hvLab(w):meanLab(w);
+function startQuiz(){const p=pool(10);if(!p.length){home();return}
+ const qs=p.map(w=>({w,t:'k2m',fn:quizLab,o:shuf([w,...distract(w,3,quizLab)])}));
+ S={m:'quiz',qs,i:0,ok:0,wrong:[],ans:false};drawQuiz()}
 function drawQuiz(){if(S.i>=S.qs.length){endCard('Trắc nghiệm','startQuiz');return}
- const q=S.qs[S.i],w=q.w;let ask='',cls='';
- if(q.t==='m2k'){ask=`<div class="muted">Chọn chữ Kanji có nghĩa</div><div class="hv" style="font-size:24px">${esc(lab(w))}</div>${w.vi&&w.hv?'':''}`;cls='kjo kj'}
- else if(q.t==='k2m')ask=`<div class="muted">Chọn nghĩa đúng của chữ</div><div class="kmid kj">${esc(w.k)}</div>`;
- else if(q.t==='k2r')ask=`<div class="muted">Chọn cách đọc của chữ</div><div class="kmid kj">${esc(w.k)}</div>`;
- else ask=`<div class="muted">Chọn âm Hán Việt của chữ</div><div class="kmid kj">${esc(w.k)}</div>`;
- const txt=x=>q.t==='m2k'?x.k:q.t==='k2m'?lab(x):q.t==='k2r'?rdLab(x):(x.hv||'').toUpperCase();
- const opts=q.t==='m2k'?`<div class="two">${q.o.map((x,k)=>`<button class="opt kjo kj" id="o${k}" onclick="pickQ(${k})">${esc(x.k)}</button>`).join('')}</div>`:q.o.map((x,k)=>`<button class="opt ${q.t==='k2r'?'kj':''}" id="o${k}" onclick="pickQ(${k})">${esc(txt(x))}</button>`).join('');
+ const q=S.qs[S.i],w=q.w;
+ const ask=`<div class="muted">Chọn âm Hán Việt và nghĩa đúng của chữ</div><div class="kmid kj">${esc(w.k)}</div>`;
+ const opts=q.o.map((x,k)=>`<button class="opt" id="o${k}" onclick="pickQ(${k})">${esc(q.fn(x))}</button>`).join('');
  shell('Trắc nghiệm',`<div class="prog"><span>Câu ${S.i+1}/${S.qs.length}</span><span>đúng ${S.ok}</span></div><div class="card">${ask}<div class="sp"></div>${opts}<div id="fb"></div></div>`)}
 function pickQ(k){if(S.ans)return;S.ans=true;const q=S.qs[S.i],ok=q.o[k].id===q.w.id;
  document.querySelectorAll('.opt').forEach((b,i)=>{if(q.o[i].id===q.w.id)b.classList.add('ok');else if(i===k)b.classList.add('no')});
  if(ok)S.ok++;else S.wrong.push(q.w);practiceResult(q.w.id,ok);
  $('#fb').innerHTML=`<div class="msg ${ok?'ok':'no'}">${ok?'Chính xác!':'Chưa đúng'}</div><div class="ex">${back(q.w)}</div><div class="sp"></div><button class="btn" onclick="S.i++;S.ans=false;drawQuiz()">Tiếp tục</button>`;speak(q.w)}
-/* type Han-Viet */
-function startType(){const p=pool(10,w=>w.hv);if(!p.length){home();return}
- S={m:'type',qs:p.map(w=>({w})),i:0,ok:0,wrong:[],ans:false};drawType()}
-function drawType(){if(S.i>=S.qs.length){endCard('Gõ Hán Việt','startType');return}
- const w=S.qs[S.i].w;
- shell('Gõ Hán Việt',`<div class="prog"><span>Câu ${S.i+1}/${S.qs.length}</span><span>đúng ${S.ok}</span></div><div class="card"><div class="center"><span class="badge b${w.g}">${GN(w.g)}</span></div><div class="kbig kj" style="font-size:110px">${esc(w.k)}</div><div class="meta">${esc(w.en)} · ${w.st} nét</div>
- <input id="ans" class="txt" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Gõ âm Hán Việt (có dấu hoặc không dấu)…" onkeydown="if(event.key==='Enter')checkType()"><div id="hint" class="muted"></div><div id="fb"></div>
- <div class="grid"><button class="btn" id="chk" onclick="checkType()">Kiểm tra</button><button class="btn sec" onclick="hintType()">Gợi ý</button></div></div>`);
- setTimeout(()=>{const e=$('#ans');if(e)e.focus()},100);S.hint=0}
-function hintType(){const w=S.qs[S.i].w,a=w.hv.split(/[,;]/)[0].trim();S.hint++;$('#hint').textContent='Gợi ý: '+a.slice(0,S.hint)+' '+'_ '.repeat(Math.max(0,a.length-S.hint)).trim()+`  (${a.length} chữ cái)`}
-function checkType(){if(S.ans){S.i++;S.ans=false;drawType();return}
- const w=S.qs[S.i].w,v=noDia($('#ans').value);if(!v)return;S.ans=true;
- const A=w.hv.split(/[,;]/).map(noDia).filter(Boolean),ok=A.includes(v);if(ok)S.ok++;else S.wrong.push(w);practiceResult(w.id,ok);
- $('#fb').innerHTML=`<div class="msg ${ok?'ok':'no'}">${ok?'Chính xác!':'Chưa đúng'} — ${esc(w.hv.toUpperCase())}${w.vi?': '+esc(w.vi):''}</div>${readings(w)}`;$('#chk').textContent='Tiếp tục';$('#ans').disabled=true;speak(w)}
+/* trắc nghiệm âm đọc: On / Kun */
+function readOpts(w,t,ans){const own=new Set((t==='on'?w.on:w.kn));const key=x=>t==='on'?x.on:x.kn;
+ const tiers=[W.filter(x=>x.r===w.r),W.filter(x=>x.gp===w.gp),W.filter(x=>x.g===w.g),W];const seen=new Set([ans]),out=[];
+ for(const tr of tiers){for(const x of shuf(tr)){if(x.id===w.id)continue;for(const r of shuf(key(x))){if(out.length>=3)break;if(own.has(r)||seen.has(r))continue;seen.add(r);out.push(r)}if(out.length>=3)break}if(out.length>=3)break}
+ return shuf([ans,...out])}
+function startRead(){const a=active().filter(w=>w.on.length||w.kn.length);const seen=shuf(a.filter(w=>DB.c[w.id])),rest=shuf(a.filter(w=>!DB.c[w.id]));
+ const p=seen.slice(0,10).concat(rest).slice(0,10);if(!p.length){home();return}
+ const qs=p.map(w=>{const ts=[];if(w.on.length)ts.push('on');if(w.kn.length)ts.push('kun');const t=rnd(ts),ans=rnd(t==='on'?w.on:w.kn);return{w,t,ans,o:readOpts(w,t,ans)}});
+ S={m:'read',qs,i:0,ok:0,wrong:[],ans:false};drawRead()}
+function drawRead(){if(S.i>=S.qs.length){endCard('Âm đọc On / Kun','startRead');return}
+ const q=S.qs[S.i],w=q.w;
+ shell('Âm đọc On / Kun',`<div class="prog"><span>Câu ${S.i+1}/${S.qs.length}</span><span>đúng ${S.ok}</span></div><div class="card"><div class="center"><span class="badge b${w.g}">${GN(w.g)}</span></div><div class="muted center">Chọn âm <b>${q.t==='on'?'On (音読み)':'Kun (訓読み)'}</b> của chữ</div><div class="kbig kj" style="font-size:100px">${esc(w.k)}</div><div class="meta">${esc(w.hv?w.hv.toUpperCase()+' · ':'')}${esc(meanLab(w))}</div><div class="sp"></div>
+ <div class="two">${q.o.map((x,k)=>`<button class="opt kj" style="text-align:center;font-size:22px" id="o${k}" onclick="pickR(${k})">${esc(x)}</button>`).join('')}</div><div id="fb"></div></div>`)}
+function pickR(k){if(S.ans)return;S.ans=true;const q=S.qs[S.i],ok=q.o[k]===q.ans;
+ document.querySelectorAll('.opt').forEach((b,i)=>{if(q.o[i]===q.ans)b.classList.add('ok');else if(i===k)b.classList.add('no')});
+ if(ok)S.ok++;else S.wrong.push(q.w);practiceResult(q.w.id,ok);
+ $('#fb').innerHTML=`<div class="msg ${ok?'ok':'no'}" style="margin-top:12px">${ok?'Chính xác!':'Chưa đúng'} — tất cả âm đọc của chữ này:</div>${readings(q.w)}<div class="sp"></div><button class="btn" onclick="S.i++;S.ans=false;drawRead()">Tiếp tục</button>`;speak(q.w)}
 /* browse */
 let BF={q:'',g:'ALL',gp:-1};
 function browse(){S=null;shell('Danh sách chữ',`<input class="txt" id="sq" placeholder="Tìm chữ, Hán Việt hoặc nghĩa…" value="${esc(BF.q)}" oninput="BF.q=this.value;drawList()">
@@ -176,7 +177,8 @@ function detail(id){const w=W[id],c=DB.c[id];const m=document.createElement('div
  m.querySelector('#rs').onclick=()=>{delete DB.c[id];save();m.remove();if($('#list'))drawList()};if(DB.s.auto)speak(w)}
 /* settings */
 function settings(){shell('Cài đặt',`<div class="card">
- <div class="set"><span>Số chữ mới mỗi ngày</span><select onchange="DB.s.newPerDay=+this.value;save()">${[5,8,10,15,20,30].map(n=>`<option ${DB.s.newPerDay===n?'selected':''}>${n}</option>`).join('')}</select></div>
+ <div class="set"><span>Số chữ mới mỗi ngày (khi có giới hạn)</span><select onchange="DB.s.newPerDay=+this.value;save()">${[5,8,10,15,20,30].map(n=>`<option ${DB.s.newPerDay===n?'selected':''}>${n}</option>`).join('')}</select></div>
+ <div class="set"><span>Học không giới hạn (bỏ giới hạn chữ mới mỗi ngày)</span><input type="checkbox" ${DB.s.unl?'checked':''} onchange="DB.s.unl=this.checked?1:0;save()"></div>
  <div class="set"><span>Thứ tự học chữ mới</span><select onchange="DB.s.ord=this.value;save()">${[['grade','Theo lớp (1→6→S), ít nét trước'],['stroke','Theo số nét (ít → nhiều)'],['group','Theo nhóm nghĩa'],['file','Theo thứ tự trong file']].map(o=>`<option value="${o[0]}" ${DB.s.ord===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select></div>
  <div class="set"><span>Chỉ học một nhóm nghĩa</span><select onchange="DB.s.grp=this.value;save()"><option value="">Tất cả nhóm</option>${GROUPS.map(g=>`<option ${DB.s.grp===g?'selected':''}>${esc(g)}</option>`).join('')}</select></div>
  <div class="set"><span>Cấp độ cần học</span><span class="chips" style="margin:0;justify-content:flex-end">${GR.map(g=>`<button class="chip ${DB.s.gr[g]?'on':''}" onclick="DB.s.gr['${g}']=DB.s.gr['${g}']?0:1;if(!Object.values(DB.s.gr).some(x=>x))DB.s.gr['${g}']=1;save();settings()">${g}</button>`).join('')}</span></div>
