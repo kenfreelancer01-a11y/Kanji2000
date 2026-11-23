@@ -65,7 +65,7 @@ a{color:var(--pr)}
 <div id="app"></div>
 <script src="data.js"></script>
 <script>
-const W=window.KANJI, GR=['1','2','3','4','5','6','S'], KEY='kj2000v1', IV=[0,1,2,4,8,16,32,60];
+const W=window.KANJI||[], GR=['1','2','3','4','5','6','S'], KEY='kj2000v1', IV=[0,1,2,4,8,16,32,60];
 const GN=g=>g==='S'?'Cấp S (THCS+)':'Lớp '+g;
 const GROUPS=[...new Set(W.map(w=>w.gp))].sort((a,b)=>a.localeCompare(b,'vi'));
 const $=s=>document.querySelector(s);
@@ -192,5 +192,6 @@ function exportP(){const b=new Blob([JSON.stringify(DB)],{type:'application/json
 function importP(f){if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.c)throw 0;DB=Object.assign(DB,d);save();alert('Đã nhập tiến độ.');home()}catch(e){alert('File không hợp lệ.')}};r.readAsText(f)}
 document.addEventListener('keydown',e=>{if(!S||S.m!=='study'||e.target.tagName==='INPUT')return;if(!S.show&&(e.key===' '||e.key==='Enter')){e.preventDefault();S.show=true;drawStudy()}else if(S.show&&'1234'.includes(e.key)&&S.i<S.q.length)answer(['again','hard','good','easy'][+e.key-1])});
 if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
-home();
+window.addEventListener('error',e=>{if(document.getElementById('errbox'))return;const d=document.createElement('div');d.id='errbox';d.style.cssText='position:fixed;left:8px;right:8px;bottom:8px;z-index:99;background:#dc2626;color:#fff;padding:10px 12px;border-radius:12px;font-size:13px';d.textContent='Lỗi: '+(e.message||'không rõ')+' — hãy chụp màn hình dòng này gửi lại.';document.body.appendChild(d)});
+if(!W.length){$('#app').innerHTML='<div class="card"><h3>Không tải được dữ liệu Kanji</h3><p>File <b>index.html</b> cần nằm <b>cùng thư mục</b> với file <b>data.js</b> (và các file icon). Hãy giải nén toàn bộ gói Kanji2000_App.zip, chép đè index.html vào thư mục đó rồi mở lại.</p></div>'}else home();
 </script></body></html>
